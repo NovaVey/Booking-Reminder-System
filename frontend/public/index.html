@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Booking & Reminder System</title>
+<style>
+  :root {
+    --teal: #0d9488;
+    --teal-dark: #0f766e;
+    --teal-light: #ccfbf1;
+    --bg: #f8fafc;
+    --border: #e2e8f0;
+    --text: #1e293b;
+    --text-muted: #64748b;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  header {
+    background: #fff;
+    border-bottom: 1px solid var(--border);
+    padding: 20px 24px;
+  }
+
+  header h1 {
+    margin: 0;
+    font-size: 1.4rem;
+    color: var(--teal-dark);
+  }
+
+  header p {
+    margin: 4px 0 0;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+  }
+
+  main {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 20px 16px 60px;
+  }
+
+  nav.tabs {
+    display: flex;
+    gap: 4px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 4px;
+    margin-bottom: 20px;
+  }
+
+  nav.tabs button {
+    flex: 1;
+    padding: 10px 12px;
+    border: none;
+    background: transparent;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  nav.tabs button.active {
+    background: var(--teal);
+    color: #fff;
+  }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  .card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 14px;
+  }
+
+  h2 {
+    font-size: 1.1rem;
+    margin: 0 0 14px;
+  }
+
+  label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin: 12px 0 4px;
+  }
+
+  input, select, textarea {
+    width: 100%;
+    padding: 9px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    background: #fff;
+    color: var(--text);
+  }
+
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--teal);
+    box-shadow: 0 0 0 3px var(--teal-light);
+  }
+
+  textarea { resize: vertical; min-height: 60px; }
+
+  .row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  button.primary {
+    margin-top: 16px;
+    background: var(--teal);
+    color: #fff;
+    border: none;
+    padding: 11px 18px;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  button.primary:hover { background: var(--teal-dark); }
+
+  .msg {
+    margin-top: 12px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    display: none;
+  }
+
+  .msg.success {
+    display: block;
+    background: var(--teal-light);
+    color: var(--teal-dark);
+    border: 1px solid var(--teal);
+  }
+
+  .msg.error {
+    display: block;
+    background: #fee2e2;
+    color: #b91c1c;
+    border: 1px solid #fca5a5;
+  }
+
+  .client-list, .booking-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .client-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+
+  .client-item .name { font-weight: 600; }
+  .client-item .contact { font-size: 0.85rem; color: var(--text-muted); }
+
+  .empty-state {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    padding: 20px 0;
+    text-align: center;
+  }
+
+  .filter-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .filter-tabs button {
+    padding: 7px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: #fff;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .filter-tabs button.active {
+    background: var(--teal);
+    border-color: var(--teal);
+    color: #fff;
+  }
+
+  .booking-card {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    cursor: pointer;
+    background: #fff;
+  }
+
+  .booking-card:focus-visible {
+    outline: 2px solid var(--teal);
+    outline-offset: 2px;
+  }
+
+  .booking-card.past { opacity: 0.55; }
+
+  .booking-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .booking-card .client-name {
+    font-weight: 700;
+    font-size: 1rem;
+  }
+
+  .booking-card .service {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-top: 2px;
+  }
+
+  .booking-card .datetime {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-top: 6px;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+  }
+
+  .badge.upcoming { background: var(--teal-light); color: var(--teal-dark); }
+  .badge.completed { background: #dbeafe; color: #1d4ed8; }
+  .badge.cancelled { background: #fee2e2; color: #b91c1c; }
+  .badge.no_show { background: #fef3c7; color: #b45309; }
+
+  .booking-details {
+    display: none;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+
+  .booking-card.expanded .booking-details { display: block; }
+
+  .booking-details .notes {
+    font-size: 0.88rem;
+    color: var(--text);
+    background: var(--bg);
+    padding: 10px;
+    border-radius: 8px;
+    margin-top: 8px;
+    white-space: pre-wrap;
+  }
+
+  .booking-details label { margin-top: 0; }
+
+  @media (max-width: 520px) {
+    .row { grid-template-columns: 1fr; }
+    nav.tabs button { font-size: 0.8rem; padding: 9px 6px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Booking &amp; Reminder System</h1>
+  <p>Manage clients, book appointments, and keep reminders on track.</p>
+</header>
+
+<main>
+  <nav class="tabs" role="tablist">
+    <button class="tab-btn active" role="tab" aria-selected="true" data-tab="clients">Clients</button>
+    <button class="tab-btn" role="tab" aria-selected="false" data-tab="book">Book Appointment</button>
+    <button class="tab-btn" role="tab" aria-selected="false" data-tab="appointments">Appointments</button>
+  </nav>
+
+  <!-- CLIENTS TAB -->
+  <section class="tab-panel active" id="tab-clients">
+    <div class="card">
+      <h2>Clients</h2>
+      <div class="client-list" id="client-list">
+        <div class="empty-state">Loading clients&hellip;</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Add Client</h2>
+      <form id="client-form">
+        <label for="client-name">Name *</label>
+        <input type="text" id="client-name" required>
+
+        <div class="row">
+          <div>
+            <label for="client-email">Email</label>
+            <input type="email" id="client-email">
+          </div>
+          <div>
+            <label for="client-phone">Phone</label>
+            <input type="tel" id="client-phone">
+          </div>
+        </div>
+
+        <button type="submit" class="primary">Add Client</button>
+        <div class="msg" id="client-msg"></div>
+      </form>
+    </div>
+  </section>
+
+  <!-- BOOK APPOINTMENT TAB -->
+  <section class="tab-panel" id="tab-book">
+    <div class="card">
+      <h2>Book Appointment</h2>
+      <form id="booking-form">
+        <label for="booking-client">Client *</label>
+        <select id="booking-client" required>
+          <option value="">Select a client&hellip;</option>
+        </select>
+
+        <label for="booking-service">Service *</label>
+        <input type="text" id="booking-service" placeholder="e.g. Haircut, Consultation" required>
+
+        <div class="row">
+          <div>
+            <label for="booking-date">Date *</label>
+            <input type="date" id="booking-date" required>
+          </div>
+          <div>
+            <label for="booking-time">Time *</label>
+            <input type="time" id="booking-time" required>
+          </div>
+        </div>
+
+        <label for="booking-duration">Duration</label>
+        <select id="booking-duration">
+          <option value="30">30 minutes</option>
+          <option value="60" selected>60 minutes</option>
+          <option value="90">90 minutes</option>
+          <option value="120">120 minutes</option>
+        </select>
+
+        <label for="booking-notes">Notes</label>
+        <textarea id="booking-notes" placeholder="Optional notes"></textarea>
+
+        <button type="submit" class="primary">Book Appointment</button>
+        <div class="msg" id="booking-msg"></div>
+      </form>
+    </div>
+  </section>
+
+  <!-- APPOINTMENTS TAB -->
+  <section class="tab-panel" id="tab-appointments">
+    <div class="filter-tabs" id="status-filters" role="group" aria-label="Filter appointments by status">
+      <button class="filter-btn active" aria-pressed="true" data-status="">All</button>
+      <button class="filter-btn" aria-pressed="false" data-status="upcoming">Upcoming</button>
+      <button class="filter-btn" aria-pressed="false" data-status="completed">Completed</button>
+      <button class="filter-btn" aria-pressed="false" data-status="cancelled">Cancelled</button>
+      <button class="filter-btn" aria-pressed="false" data-status="no_show">No Show</button>
+    </div>
+
+    <div class="booking-list" id="booking-list">
+      <div class="empty-state">Loading appointments&hellip;</div>
+    </div>
+  </section>
+</main>
+
+<script>
+  const STATUS_LABELS = {
+    upcoming: 'Upcoming',
+    completed: 'Completed',
+    cancelled: 'Cancelled',
+    no_show: 'No Show',
+  };
+
+  // ---------- Tab switching ----------
+  document.querySelectorAll('.tab-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach((b) => {
+        b.classList.remove('active');
+        b.setAttribute('aria-selected', 'false');
+      });
+      document.querySelectorAll('.tab-panel').forEach((p) => p.classList.remove('active'));
+      btn.classList.add('active');
+      btn.setAttribute('aria-selected', 'true');
+      document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active');
+
+      if (btn.dataset.tab === 'book') loadClientDropdown();
+      if (btn.dataset.tab === 'appointments') loadBookings();
+    });
+  });
+
+  // ---------- Clients ----------
+  async function loadClients() {
+    const listEl = document.getElementById('client-list');
+    try {
+      const res = await fetch('/api/clients');
+      if (!res.ok) throw new Error('Request failed');
+      const clients = await res.json();
+
+      if (!clients.length) {
+        listEl.innerHTML = '<div class="empty-state">No clients yet. Add one below.</div>';
+        return;
+      }
+
+      listEl.innerHTML = clients.map((c) => `
+        <div class="client-item">
+          <div>
+            <div class="name">${escapeHtml(c.name)}</div>
+            <div class="contact">${escapeHtml([c.email, c.phone].filter(Boolean).join(' · ') || 'No contact info')}</div>
+          </div>
+        </div>
+      `).join('');
+    } catch (err) {
+      listEl.innerHTML = '<div class="empty-state">Failed to load clients.</div>';
+    }
+  }
+
+  document.getElementById('client-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const msgEl = document.getElementById('client-msg');
+    const name = document.getElementById('client-name').value.trim();
+    const email = document.getElementById('client-email').value.trim();
+    const phone = document.getElementById('client-phone').value.trim();
+
+    try {
+      const res = await fetch('/api/clients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, phone }),
+      });
+
+      if (!res.ok) throw new Error('Request failed');
+
+      msgEl.textContent = 'Client added.';
+      msgEl.className = 'msg success';
+      e.target.reset();
+      loadClients();
+    } catch (err) {
+      msgEl.textContent = 'Could not add client. Please try again.';
+      msgEl.className = 'msg error';
+    }
+  });
+
+  // ---------- Book Appointment ----------
+  async function loadClientDropdown() {
+    const select = document.getElementById('booking-client');
+    try {
+      const res = await fetch('/api/clients');
+      const clients = await res.json();
+      const current = select.value;
+
+      select.innerHTML = '<option value="">Select a client&hellip;</option>' +
+        clients.map((c) => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+
+      if (current) select.value = current;
+    } catch (err) {
+      // leave dropdown as-is
+    }
+  }
+
+  document.getElementById('booking-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const msgEl = document.getElementById('booking-msg');
+
+    const client_id = document.getElementById('booking-client').value;
+    const service = document.getElementById('booking-service').value.trim();
+    const date = document.getElementById('booking-date').value;
+    const time = document.getElementById('booking-time').value;
+    const duration_minutes = document.getElementById('booking-duration').value;
+    const notes = document.getElementById('booking-notes').value.trim();
+
+    if (!client_id || !service || !date || !time) {
+      msgEl.textContent = 'Please fill in all required fields.';
+      msgEl.className = 'msg error';
+      return;
+    }
+
+    const appointment_at = `${date}T${time}:00`;
+
+    try {
+      const res = await fetch('/api/bookings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          client_id,
+          service,
+          appointment_at,
+          duration_minutes: Number(duration_minutes),
+          notes,
+        }),
+      });
+
+      if (!res.ok) throw new Error('Request failed');
+
+      msgEl.textContent = 'Appointment booked. A reminder will be sent 24 hours before.';
+      msgEl.className = 'msg success';
+      e.target.reset();
+      document.getElementById('booking-duration').value = '60';
+    } catch (err) {
+      msgEl.textContent = 'Could not book appointment. Please try again.';
+      msgEl.className = 'msg error';
+    }
+  });
+
+  // ---------- Appointments ----------
+  let currentStatus = '';
+
+  document.querySelectorAll('.filter-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn').forEach((b) => {
+        b.classList.remove('active');
+        b.setAttribute('aria-pressed', 'false');
+      });
+      btn.classList.add('active');
+      btn.setAttribute('aria-pressed', 'true');
+      currentStatus = btn.dataset.status;
+      loadBookings();
+    });
+  });
+
+  // Appointment times are naive "wall clock" values with no timezone info —
+  // parse the raw Y/M/D/H/M digits directly instead of letting the browser
+  // reinterpret them as a UTC instant and shift them by the viewer's offset.
+  function parseApptDate(isoString) {
+    const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/.exec(isoString);
+    if (!match) return new Date(isoString);
+    const [, y, mo, d, h, mi, s] = match.map(Number);
+    return new Date(y, mo - 1, d, h, mi, s);
+  }
+
+  function sortForDisplay(bookings) {
+    const now = new Date();
+    const upcoming = [];
+    const past = [];
+    bookings.forEach((b) => (parseApptDate(b.appointment_at) >= now ? upcoming : past).push(b));
+    upcoming.sort((a, b) => parseApptDate(a.appointment_at) - parseApptDate(b.appointment_at));
+    past.sort((a, b) => parseApptDate(b.appointment_at) - parseApptDate(a.appointment_at));
+    return [...upcoming, ...past];
+  }
+
+  async function loadBookings() {
+    const listEl = document.getElementById('booking-list');
+    try {
+      const url = currentStatus ? `/api/bookings?status=${encodeURIComponent(currentStatus)}` : '/api/bookings';
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('Request failed');
+      const bookings = sortForDisplay(await res.json());
+
+      if (!bookings.length) {
+        listEl.innerHTML = '<div class="empty-state">No appointments found.</div>';
+        return;
+      }
+
+      const now = new Date();
+
+      listEl.innerHTML = bookings.map((b, i) => {
+        const apptDate = parseApptDate(b.appointment_at);
+        const isPast = apptDate < now;
+        const statusClass = b.status;
+        const statusLabel = STATUS_LABELS[b.status] || b.status;
+
+        return `
+          <div class="booking-card ${isPast ? 'past' : ''}" data-id="${b.id}" data-index="${i}" tabindex="0" role="button" aria-expanded="false">
+            <div class="booking-card-top">
+              <div>
+                <div class="client-name">${escapeHtml(b.client_name)}</div>
+                <div class="service">${escapeHtml(b.service)}</div>
+                <div class="datetime">${formatDateTime(apptDate)} · ${b.duration_minutes} min</div>
+              </div>
+              <span class="badge ${statusClass}">${statusLabel}</span>
+            </div>
+            <div class="booking-details">
+              <label for="status-select-${b.id}">Change Status</label>
+              <select id="status-select-${b.id}" class="status-select" data-id="${b.id}">
+                ${Object.keys(STATUS_LABELS).map((s) => `<option value="${s}" ${s === b.status ? 'selected' : ''}>${STATUS_LABELS[s]}</option>`).join('')}
+              </select>
+              ${b.notes ? `<label>Notes</label><div class="notes">${escapeHtml(b.notes)}</div>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      function toggleCard(card) {
+        const expanded = card.classList.toggle('expanded');
+        card.setAttribute('aria-expanded', String(expanded));
+      }
+
+      document.querySelectorAll('.booking-card').forEach((card) => {
+        card.addEventListener('click', (e) => {
+          if (e.target.closest('.status-select')) return;
+          toggleCard(card);
+        });
+        card.addEventListener('keydown', (e) => {
+          if (e.target.closest('.status-select')) return;
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            toggleCard(card);
+          }
+        });
+      });
+
+      document.querySelectorAll('.status-select').forEach((select) => {
+        select.addEventListener('click', (e) => e.stopPropagation());
+        select.addEventListener('keydown', (e) => e.stopPropagation());
+        select.addEventListener('change', async (e) => {
+          const id = e.target.dataset.id;
+          const status = e.target.value;
+          try {
+            const res = await fetch(`/api/bookings/${id}/status`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ status }),
+            });
+            if (!res.ok) throw new Error('Request failed');
+            loadBookings();
+          } catch (err) {
+            alert('Could not update status. Please try again.');
+          }
+        });
+      });
+    } catch (err) {
+      listEl.innerHTML = '<div class="empty-state">Failed to load appointments.</div>';
+    }
+  }
+
+  function formatDateTime(date) {
+    return date.toLocaleString(undefined, {
+      weekday: 'short', month: 'short', day: 'numeric',
+      hour: 'numeric', minute: '2-digit',
+    });
+  }
+
+  function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  // ---------- Init ----------
+  loadClients();
+</script>
+
+</body>
+</html>
