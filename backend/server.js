@@ -1,5 +1,9 @@
 require('dotenv').config();
 
+// Pin the process to UTC so naive timestamps (no timezone offset) round-trip
+// deterministically between the DB and the frontend regardless of host locale.
+process.env.TZ = process.env.TZ || 'UTC';
+
 const path = require('path');
 const express = require('express');
 const cors = require('cors');

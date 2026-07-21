@@ -105,6 +105,13 @@ By default, reminders are **logged to the console** (`[REMINDER] Would send to {
 2. A cron job (`node-cron`, schedule `*/5 * * * *`) runs every 5 minutes and checks for reminders where `sent = FALSE`, `send_at <= NOW()`, and the booking's status is still `upcoming`.
 3. Each due reminder is "sent" (logged) and then marked `sent = TRUE` with a `sent_at` timestamp so it's never sent twice.
 
+## Known limitations
+
+This is a portfolio-scope project, so a few things are intentionally out of scope:
+
+- **No authentication.** Every `/api/*` route is open with no login or API key — fine for local use or a demo, but add auth (e.g. sessions or an API key check) before exposing this beyond your own machine.
+- **Single-timezone assumption.** Appointment times are stored as naive timestamps (no timezone) and treated as the business's local wall-clock time throughout — there's no per-user timezone conversion, which is fine for a single-location business but wouldn't be accurate for clients spread across timezones.
+
 ## License
 
 MIT

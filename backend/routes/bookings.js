@@ -61,14 +61,29 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ error: 'client_id, service, and appointment_at are required' });
   }
 
-  const client = await pool.connect();
+  let duration = 60;
+  if (duration_minutes !== undefined && duration_minutes !== null && duration_minutes !== '') {
+    duration = Number(duration_minutes);
+    if (!Number.isInteger(duration) || duration <= 0) {
+      return res.status(400).json({ error: 'duration_minutes must be a positive integer' });
+    }
+  }
+
+  let client;
+  try {
+    client = await pool.connect();
+  } catch (err) {
+    console.error('Error acquiring DB connection:', err);
+    return res.status(500).json({ error: 'Failed to create booking' });
+  }
+
   try {
     await client.query('BEGIN');
 
     const bookingResult = await client.query(
       `INSERT INTO bookings (client_id, service, appointment_at, duration_minutes, notes)
        VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-      [client_id, service, appointment_at, duration_minutes || 60, notes || null]
+      [client_id, service, appointment_at, duration, notes || null]
     );
     const booking = bookingResult.rows[0];
 
@@ -82,6 +97,9 @@ router.post('/', async (req, res) => {
     res.status(201).json(booking);
   } catch (err) {
     await client.query('ROLLBACK');
+    if (err.code === '23503') {
+      return res.status(400).json({ error: 'client_id does not reference an existing client' });
+    }
     console.error('Error creating booking:', err);
     res.status(500).json({ error: 'Failed to create booking' });
   } finally {
@@ -93,6 +111,10 @@ router.post('/', async (req, res) => {
 router.patch('/:id/status', async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
+
+  if (!/^\d+$/.test(id)) {
+    return res.status(400).json({ error: 'id must be a positive integer' });
+  }
 
   if (!status || !VALID_STATUSES.includes(status)) {
     return res.status(400).json({ error: `status must be one of: ${VALID_STATUSES.join(', ')}` });

@@ -219,6 +219,11 @@
     background: #fff;
   }
 
+  .booking-card:focus-visible {
+    outline: 2px solid var(--teal);
+    outline-offset: 2px;
+  }
+
   .booking-card.past { opacity: 0.55; }
 
   .booking-card-top {
@@ -296,10 +301,10 @@
 </header>
 
 <main>
-  <nav class="tabs">
-    <button class="tab-btn active" data-tab="clients">Clients</button>
-    <button class="tab-btn" data-tab="book">Book Appointment</button>
-    <button class="tab-btn" data-tab="appointments">Appointments</button>
+  <nav class="tabs" role="tablist">
+    <button class="tab-btn active" role="tab" aria-selected="true" data-tab="clients">Clients</button>
+    <button class="tab-btn" role="tab" aria-selected="false" data-tab="book">Book Appointment</button>
+    <button class="tab-btn" role="tab" aria-selected="false" data-tab="appointments">Appointments</button>
   </nav>
 
   <!-- CLIENTS TAB -->
@@ -377,12 +382,12 @@
 
   <!-- APPOINTMENTS TAB -->
   <section class="tab-panel" id="tab-appointments">
-    <div class="filter-tabs" id="status-filters">
-      <button class="filter-btn active" data-status="">All</button>
-      <button class="filter-btn" data-status="upcoming">Upcoming</button>
-      <button class="filter-btn" data-status="completed">Completed</button>
-      <button class="filter-btn" data-status="cancelled">Cancelled</button>
-      <button class="filter-btn" data-status="no_show">No Show</button>
+    <div class="filter-tabs" id="status-filters" role="group" aria-label="Filter appointments by status">
+      <button class="filter-btn active" aria-pressed="true" data-status="">All</button>
+      <button class="filter-btn" aria-pressed="false" data-status="upcoming">Upcoming</button>
+      <button class="filter-btn" aria-pressed="false" data-status="completed">Completed</button>
+      <button class="filter-btn" aria-pressed="false" data-status="cancelled">Cancelled</button>
+      <button class="filter-btn" aria-pressed="false" data-status="no_show">No Show</button>
     </div>
 
     <div class="booking-list" id="booking-list">
@@ -402,9 +407,13 @@
   // ---------- Tab switching ----------
   document.querySelectorAll('.tab-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
-      document.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach((b) => {
+        b.classList.remove('active');
+        b.setAttribute('aria-selected', 'false');
+      });
       document.querySelectorAll('.tab-panel').forEach((p) => p.classList.remove('active'));
       btn.classList.add('active');
+      btn.setAttribute('aria-selected', 'true');
       document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active');
 
       if (btn.dataset.tab === 'book') loadClientDropdown();
@@ -417,6 +426,7 @@
     const listEl = document.getElementById('client-list');
     try {
       const res = await fetch('/api/clients');
+      if (!res.ok) throw new Error('Request failed');
       const clients = await res.json();
 
       if (!clients.length) {
@@ -529,19 +539,44 @@
 
   document.querySelectorAll('.filter-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
-      document.querySelectorAll('.filter-btn').forEach((b) => b.classList.remove('active'));
+      document.querySelectorAll('.filter-btn').forEach((b) => {
+        b.classList.remove('active');
+        b.setAttribute('aria-pressed', 'false');
+      });
       btn.classList.add('active');
+      btn.setAttribute('aria-pressed', 'true');
       currentStatus = btn.dataset.status;
       loadBookings();
     });
   });
+
+  // Appointment times are naive "wall clock" values with no timezone info —
+  // parse the raw Y/M/D/H/M digits directly instead of letting the browser
+  // reinterpret them as a UTC instant and shift them by the viewer's offset.
+  function parseApptDate(isoString) {
+    const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/.exec(isoString);
+    if (!match) return new Date(isoString);
+    const [, y, mo, d, h, mi, s] = match.map(Number);
+    return new Date(y, mo - 1, d, h, mi, s);
+  }
+
+  function sortForDisplay(bookings) {
+    const now = new Date();
+    const upcoming = [];
+    const past = [];
+    bookings.forEach((b) => (parseApptDate(b.appointment_at) >= now ? upcoming : past).push(b));
+    upcoming.sort((a, b) => parseApptDate(a.appointment_at) - parseApptDate(b.appointment_at));
+    past.sort((a, b) => parseApptDate(b.appointment_at) - parseApptDate(a.appointment_at));
+    return [...upcoming, ...past];
+  }
 
   async function loadBookings() {
     const listEl = document.getElementById('booking-list');
     try {
       const url = currentStatus ? `/api/bookings?status=${encodeURIComponent(currentStatus)}` : '/api/bookings';
       const res = await fetch(url);
-      const bookings = await res.json();
+      if (!res.ok) throw new Error('Request failed');
+      const bookings = sortForDisplay(await res.json());
 
       if (!bookings.length) {
         listEl.innerHTML = '<div class="empty-state">No appointments found.</div>';
@@ -551,13 +586,13 @@
       const now = new Date();
 
       listEl.innerHTML = bookings.map((b, i) => {
-        const apptDate = new Date(b.appointment_at);
+        const apptDate = parseApptDate(b.appointment_at);
         const isPast = apptDate < now;
         const statusClass = b.status;
         const statusLabel = STATUS_LABELS[b.status] || b.status;
 
         return `
-          <div class="booking-card ${isPast ? 'past' : ''}" data-id="${b.id}" data-index="${i}">
+          <div class="booking-card ${isPast ? 'past' : ''}" data-id="${b.id}" data-index="${i}" tabindex="0" role="button" aria-expanded="false">
             <div class="booking-card-top">
               <div>
                 <div class="client-name">${escapeHtml(b.client_name)}</div>
@@ -577,15 +612,28 @@
         `;
       }).join('');
 
+      function toggleCard(card) {
+        const expanded = card.classList.toggle('expanded');
+        card.setAttribute('aria-expanded', String(expanded));
+      }
+
       document.querySelectorAll('.booking-card').forEach((card) => {
         card.addEventListener('click', (e) => {
           if (e.target.closest('.status-select')) return;
-          card.classList.toggle('expanded');
+          toggleCard(card);
+        });
+        card.addEventListener('keydown', (e) => {
+          if (e.target.closest('.status-select')) return;
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            toggleCard(card);
+          }
         });
       });
 
       document.querySelectorAll('.status-select').forEach((select) => {
         select.addEventListener('click', (e) => e.stopPropagation());
+        select.addEventListener('keydown', (e) => e.stopPropagation());
         select.addEventListener('change', async (e) => {
           const id = e.target.dataset.id;
           const status = e.target.value;
