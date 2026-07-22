@@ -20,6 +20,10 @@ app.use(express.json());
 
 app.use(express.static(path.join(__dirname, '..', 'frontend', 'public')));
 
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
+
 app.use('/api/clients', clientsRouter);
 app.use('/api/bookings', bookingsRouter);
 
