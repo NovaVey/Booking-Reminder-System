@@ -478,6 +478,7 @@
     const select = document.getElementById('booking-client');
     try {
       const res = await fetch('/api/clients');
+      if (!res.ok) throw new Error('Request failed');
       const clients = await res.json();
       const current = select.value;
 
