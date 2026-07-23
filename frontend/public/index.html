@@ -431,6 +431,19 @@
     return res;
   }
 
+  // Pulls the server's { error: "..." } message out of a failed response so
+  // the UI can show the real cause (bad key, validation, server error)
+  // instead of one generic message for every failure mode.
+  async function describeError(res) {
+    try {
+      const body = await res.json();
+      if (body && body.error) return body.error;
+    } catch (err) {
+      // response wasn't JSON — fall through to the status-based fallback
+    }
+    return `HTTP ${res.status}`;
+  }
+
   // ---------- Tab switching ----------
   document.querySelectorAll('.tab-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -453,7 +466,7 @@
     const listEl = document.getElementById('client-list');
     try {
       const res = await apiFetch('/api/clients');
-      if (!res.ok) throw new Error('Request failed');
+      if (!res.ok) throw new Error(await describeError(res));
       const clients = await res.json();
 
       if (!clients.length) {
@@ -470,7 +483,7 @@
         </div>
       `).join('');
     } catch (err) {
-      listEl.innerHTML = '<div class="empty-state">Failed to load clients.</div>';
+      listEl.innerHTML = `<div class="empty-state">Failed to load clients: ${escapeHtml(err.message)}</div>`;
     }
   }
 
@@ -488,14 +501,14 @@
         body: JSON.stringify({ name, email, phone }),
       });
 
-      if (!res.ok) throw new Error('Request failed');
+      if (!res.ok) throw new Error(await describeError(res));
 
       msgEl.textContent = 'Client added.';
       msgEl.className = 'msg success';
       e.target.reset();
       loadClients();
     } catch (err) {
-      msgEl.textContent = 'Could not add client. Please try again.';
+      msgEl.textContent = `Could not add client: ${err.message}`;
       msgEl.className = 'msg error';
     }
   });
@@ -550,14 +563,14 @@
         }),
       });
 
-      if (!res.ok) throw new Error('Request failed');
+      if (!res.ok) throw new Error(await describeError(res));
 
       msgEl.textContent = 'Appointment booked. A reminder will be sent 24 hours before.';
       msgEl.className = 'msg success';
       e.target.reset();
       document.getElementById('booking-duration').value = '60';
     } catch (err) {
-      msgEl.textContent = 'Could not book appointment. Please try again.';
+      msgEl.textContent = `Could not book appointment: ${err.message}`;
       msgEl.className = 'msg error';
     }
   });
@@ -603,7 +616,7 @@
     try {
       const url = currentStatus ? `/api/bookings?status=${encodeURIComponent(currentStatus)}` : '/api/bookings';
       const res = await apiFetch(url);
-      if (!res.ok) throw new Error('Request failed');
+      if (!res.ok) throw new Error(await describeError(res));
       const bookings = sortForDisplay(await res.json());
 
       if (!bookings.length) {
@@ -671,15 +684,15 @@
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ status }),
             });
-            if (!res.ok) throw new Error('Request failed');
+            if (!res.ok) throw new Error(await describeError(res));
             loadBookings();
           } catch (err) {
-            alert('Could not update status. Please try again.');
+            alert(`Could not update status: ${err.message}`);
           }
         });
       });
     } catch (err) {
-      listEl.innerHTML = '<div class="empty-state">Failed to load appointments.</div>';
+      listEl.innerHTML = `<div class="empty-state">Failed to load appointments: ${escapeHtml(err.message)}</div>`;
     }
   }
 
