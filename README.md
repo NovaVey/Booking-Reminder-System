@@ -2,6 +2,23 @@
 
 Appointment booking and automated reminder system for small businesses. Manage clients, book appointments, and automatically queue up 24-hour-ahead reminders — built as a portfolio project by Nova Vey Engineering.
 
+## Demo
+
+![Demo walkthrough](docs/demo.gif)
+
+[Full video (MP4)](docs/demo.mp4) — adding a client, booking an appointment, and browsing/filtering appointments.
+
+| Clients | Book Appointment | Appointments |
+|---|---|---|
+| ![Clients tab](docs/screenshots/clients.png) | ![Book Appointment tab](docs/screenshots/book-appointment.png) | ![Appointments tab](docs/screenshots/appointments.png) |
+
+<details>
+<summary>Expanded appointment card (status change + delete)</summary>
+
+![Expanded appointment card](docs/screenshots/appointment-expanded.png)
+
+</details>
+
 ## What it does
 
 Small service businesses (salons, clinics, consultants, tutors) need a simple way to track clients, book appointments, and make sure nobody misses a booking. This app provides a lightweight single-page dashboard backed by a Node/Express API and PostgreSQL, with a background job that watches for appointments coming up and fires off reminders 24 hours in advance.
