@@ -84,6 +84,19 @@ npm start       # plain node
 
 The server listens on `PORT` (default `3001`) and serves both the API and the frontend at `http://localhost:3001`.
 
+## Deployment (Railway)
+
+The app is a plain Node/Express server with no build step, so Railway's default Nixpacks build (`npm install` then `npm start`) works with no extra config files.
+
+1. On [railway.app](https://railway.app), create a new project and deploy from the `NovaVey/booking-reminder-system` GitHub repo.
+2. Set these environment variables in Railway's dashboard:
+   - `DATABASE_URL` — a Postgres connection string (e.g. from Supabase: Project Settings → Database → Connection string). The app enables SSL automatically for any non-localhost `DATABASE_URL`.
+   - `API_KEY` — a random secret (`node -e "console.log(require('crypto').randomBytes(24).toString('hex'))"`).
+   - `RESEND_API_KEY` / `REMINDER_FROM_EMAIL` — optional, for real email reminders (see [Email reminders](#email-reminders)).
+   - Don't set `PORT` — Railway injects its own and the app already reads `process.env.PORT`.
+3. If the target database doesn't already have the `clients`/`bookings`/`reminders` tables, run `backend/db/schema.sql` against it once (e.g. `psql "$DATABASE_URL" -f backend/db/schema.sql`, or via your provider's SQL editor) — the statements use `IF NOT EXISTS` so it's safe to run even if some tables already exist.
+4. Once deployed, open the Railway-provided URL — the frontend will prompt for the API key on first load (see [Authentication](#authentication)) and store it locally after that.
+
 ## API endpoints
 
 | Method | Endpoint | Description |
