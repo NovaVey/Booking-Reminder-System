@@ -137,4 +137,26 @@ router.patch('/:id/status', async (req, res) => {
   }
 });
 
+// DELETE /api/bookings/:id — delete a booking (cascades to its reminder)
+router.delete('/:id', async (req, res) => {
+  const { id } = req.params;
+
+  if (!/^\d+$/.test(id)) {
+    return res.status(400).json({ error: 'id must be a positive integer' });
+  }
+
+  try {
+    const result = await pool.query('DELETE FROM bookings WHERE id = $1 RETURNING id', [id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Booking not found' });
+    }
+
+    res.status(204).send();
+  } catch (err) {
+    console.error('Error deleting booking:', err);
+    res.status(500).json({ error: 'Failed to delete booking' });
+  }
+});
+
 module.exports = router;
