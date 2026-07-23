@@ -10,6 +10,7 @@ const cors = require('cors');
 
 const clientsRouter = require('./routes/clients');
 const bookingsRouter = require('./routes/bookings');
+const requireApiKey = require('./middleware/requireApiKey');
 const { startReminderJob } = require('./services/reminderService');
 
 const app = express();
@@ -24,6 +25,7 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
+app.use('/api', requireApiKey);
 app.use('/api/clients', clientsRouter);
 app.use('/api/bookings', bookingsRouter);
 

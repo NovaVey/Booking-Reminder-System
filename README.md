@@ -64,7 +64,7 @@ npm install
 cp .env.example .env
 ```
 
-Edit `.env` and set `DATABASE_URL` to point at your PostgreSQL database. `RESEND_API_KEY` is optional — see [Email reminders](#email-reminders) below.
+Edit `.env` and set `DATABASE_URL` to point at your PostgreSQL database, and set `API_KEY` to a random secret (e.g. `node -e "console.log(require('crypto').randomBytes(24).toString('hex'))"`) — every `/api/*` request must send this value in an `x-api-key` header, and the server refuses all API requests if it's unset. `RESEND_API_KEY` is optional — see [Email reminders](#email-reminders) below.
 
 ### 4. Initialize the database
 
@@ -95,21 +95,37 @@ The server listens on `PORT` (default `3001`) and serves both the API and the fr
 | POST | `/api/bookings` | Create a booking — requires `client_id`, `service`, `appointment_at`; optional `duration_minutes` (default 60) and `notes`. Automatically schedules a reminder 24 hours before the appointment |
 | PATCH | `/api/bookings/:id/status` | Update a booking's status — one of `upcoming`, `completed`, `cancelled`, `no_show` |
 
+Every `/api/*` request requires an `x-api-key` header matching `API_KEY` from `.env` (see [Authentication](#authentication) below). `GET /health` is unauthenticated.
+
+## Authentication
+
+All `/api/*` routes are gated behind a single shared secret: set `API_KEY` in `.env`, and every request must include it as an `x-api-key` header, e.g.:
+
+```bash
+curl -H "x-api-key: $API_KEY" http://localhost:3001/api/clients
+```
+
+If `API_KEY` isn't set, the server refuses every API request with a 500 rather than silently running unauthenticated. The frontend (`frontend/public/index.html`) asks for the key once on first load and stores it in the browser's `localStorage`, attaching it to every API call automatically; if a request comes back `401`, it clears the stored key and asks again.
+
+This is intentionally simple (one shared secret, no per-user accounts) — appropriate for a single-operator tool, not a multi-tenant product.
+
 ## Email reminders
 
-By default, reminders are **logged to the console** (`[REMINDER] Would send to {email}: ...`) rather than actually emailed — this keeps the project runnable with zero external dependencies. Wiring up real delivery via [Resend](https://resend.com) is a stretch goal: set `RESEND_API_KEY` in `.env` and swap the `console.log` in `backend/services/reminderService.js` for a call to the Resend API (see the `TODO` comment in that file).
+Reminders are sent via [Resend](https://resend.com) when `RESEND_API_KEY` is set in `.env`. Without it, reminders just **log to the console** (`[REMINDER] Would send to {email}: ...`) — this keeps the project runnable with zero external dependencies until you're ready to send real email.
+
+To enable real sending: set `RESEND_API_KEY` (and optionally `REMINDER_FROM_EMAIL`, which must be a sender Resend allows for your account) in `.env`. A client with no email on file is skipped rather than retried; a failed send (bad key, Resend outage, etc.) is logged and left unsent so it's retried on the next cron tick.
 
 ## How reminders work
 
 1. When a booking is created, a row is inserted into `reminders` with `send_at` set to 24 hours before `appointment_at`.
 2. A cron job (`node-cron`, schedule `*/5 * * * *`) runs every 5 minutes and checks for reminders where `sent = FALSE`, `send_at <= NOW()`, and the booking's status is still `upcoming`.
-3. Each due reminder is "sent" (logged) and then marked `sent = TRUE` with a `sent_at` timestamp so it's never sent twice.
+3. Each due reminder is sent (or logged, if `RESEND_API_KEY` isn't set) and then marked `sent = TRUE` with a `sent_at` timestamp so it's never sent twice.
 
 ## Known limitations
 
 This is a portfolio-scope project, so a few things are intentionally out of scope:
 
-- **No authentication.** Every `/api/*` route is open with no login or API key — fine for local use or a demo, but add auth (e.g. sessions or an API key check) before exposing this beyond your own machine.
+- **Single shared API key, not per-user accounts.** `/api/*` is gated by one secret in `.env`, not individual logins — fine for a single-operator tool, but there's no concept of multiple users/roles.
 - **Single-timezone assumption.** Appointment times are stored as naive timestamps (no timezone) and treated as the business's local wall-clock time throughout — there's no per-user timezone conversion, which is fine for a single-location business but wouldn't be accurate for clients spread across timezones.
 
 ## License
