@@ -6,7 +6,7 @@ Appointment booking and automated reminder system for small businesses. Manage c
 
 ![Demo walkthrough](docs/demo.gif)
 
-[Full video (MP4)](docs/demo.mp4) — adding a client, booking an appointment, and browsing/filtering appointments.
+[Full video (MP4)](docs/demo.mp4) — adding a client, booking an appointment, browsing/filtering appointments, and deleting one with confirmation.
 
 | Clients | Book Appointment | Appointments |
 |---|---|---|
@@ -16,6 +16,13 @@ Appointment booking and automated reminder system for small businesses. Manage c
 <summary>Expanded appointment card (status change + delete)</summary>
 
 ![Expanded appointment card](docs/screenshots/appointment-expanded.png)
+
+</details>
+
+<details>
+<summary>Delete confirmation</summary>
+
+![Delete confirmation modal](docs/screenshots/delete-confirmation.png)
 
 </details>
 

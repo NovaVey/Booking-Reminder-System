@@ -200,6 +200,67 @@
     display: inline-block;
   }
 
+  .confirm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 1000;
+  }
+
+  .confirm-overlay[hidden] { display: none; }
+
+  .confirm-modal {
+    background: #fff;
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 380px;
+    width: 100%;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+  }
+
+  .confirm-modal p {
+    margin: 0 0 20px;
+    color: var(--text);
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+
+  .confirm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+
+  .btn-secondary {
+    background: #fff;
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 9px 16px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .btn-secondary:hover { background: var(--bg); }
+
+  .btn-danger {
+    background: #dc2626;
+    border: 1px solid #dc2626;
+    color: #fff;
+    padding: 9px 16px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .btn-danger:hover { background: #b91c1c; }
+
   .empty-state {
     color: var(--text-muted);
     font-size: 0.9rem;
@@ -416,6 +477,16 @@
   </section>
 </main>
 
+<div class="confirm-overlay" id="confirm-overlay" hidden>
+  <div class="confirm-modal" role="alertdialog" aria-modal="true" aria-labelledby="confirm-message">
+    <p id="confirm-message"></p>
+    <div class="confirm-actions">
+      <button type="button" class="btn-secondary" id="confirm-cancel">Cancel</button>
+      <button type="button" class="btn-danger" id="confirm-delete">Delete</button>
+    </div>
+  </div>
+</div>
+
 <script>
   const STATUS_LABELS = {
     upcoming: 'Upcoming',
@@ -462,6 +533,31 @@
       // response wasn't JSON — fall through to the status-based fallback
     }
     return `HTTP ${res.status}`;
+  }
+
+  // Custom in-app replacement for window.confirm(), styled to match the app.
+  function confirmModal(message) {
+    return new Promise((resolve) => {
+      const overlay = document.getElementById('confirm-overlay');
+      const cancelBtn = document.getElementById('confirm-cancel');
+      const deleteBtn = document.getElementById('confirm-delete');
+
+      document.getElementById('confirm-message').textContent = message;
+      overlay.hidden = false;
+      deleteBtn.focus();
+
+      function cleanup(result) {
+        overlay.hidden = true;
+        cancelBtn.removeEventListener('click', onCancel);
+        deleteBtn.removeEventListener('click', onDelete);
+        resolve(result);
+      }
+      function onCancel() { cleanup(false); }
+      function onDelete() { cleanup(true); }
+
+      cancelBtn.addEventListener('click', onCancel);
+      deleteBtn.addEventListener('click', onDelete);
+    });
   }
 
   // ---------- Tab switching ----------
@@ -513,7 +609,8 @@
   }
 
   async function deleteClient(id, name) {
-    if (!confirm(`Delete ${name}? This will also delete all of their bookings and reminders. This cannot be undone.`)) return;
+    const confirmed = await confirmModal(`Delete ${name}? This will also delete all of their bookings and reminders. This cannot be undone.`);
+    if (!confirmed) return;
 
     try {
       const res = await apiFetch(`/api/clients/${id}`, { method: 'DELETE' });
@@ -715,7 +812,8 @@
         btn.addEventListener('click', async (e) => {
           e.stopPropagation();
           const id = btn.dataset.id;
-          if (!confirm('Delete this appointment? This cannot be undone.')) return;
+          const confirmed = await confirmModal('Delete this appointment? This cannot be undone.');
+          if (!confirmed) return;
           try {
             const res = await apiFetch(`/api/bookings/${id}`, { method: 'DELETE' });
             if (!res.ok) throw new Error(await describeError(res));
