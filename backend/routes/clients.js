@@ -33,4 +33,26 @@ router.post('/', async (req, res) => {
   }
 });
 
+// DELETE /api/clients/:id — delete a client (cascades to their bookings/reminders)
+router.delete('/:id', async (req, res) => {
+  const { id } = req.params;
+
+  if (!/^\d+$/.test(id)) {
+    return res.status(400).json({ error: 'id must be a positive integer' });
+  }
+
+  try {
+    const result = await pool.query('DELETE FROM clients WHERE id = $1 RETURNING id', [id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Client not found' });
+    }
+
+    res.status(204).send();
+  } catch (err) {
+    console.error('Error deleting client:', err);
+    res.status(500).json({ error: 'Failed to delete client' });
+  }
+});
+
 module.exports = router;

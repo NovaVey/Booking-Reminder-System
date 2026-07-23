@@ -103,10 +103,12 @@ The app is a plain Node/Express server with no build step, so Railway's default 
 |---|---|---|
 | GET | `/api/clients` | List all clients, ordered by name |
 | POST | `/api/clients` | Create a client — requires `name`; `email` and `phone` optional |
+| DELETE | `/api/clients/:id` | Delete a client — cascades to delete their bookings and reminders |
 | GET | `/api/bookings` | List bookings joined with client info, ordered by appointment time; optional `?status=` filter |
 | GET | `/api/bookings/upcoming` | List up to 20 upcoming bookings (status `upcoming`, in the future) |
 | POST | `/api/bookings` | Create a booking — requires `client_id`, `service`, `appointment_at`; optional `duration_minutes` (default 60) and `notes`. Automatically schedules a reminder 24 hours before the appointment |
 | PATCH | `/api/bookings/:id/status` | Update a booking's status — one of `upcoming`, `completed`, `cancelled`, `no_show` |
+| DELETE | `/api/bookings/:id` | Delete a booking — cascades to delete its reminder |
 
 Every `/api/*` request requires an `x-api-key` header matching `API_KEY` from `.env` (see [Authentication](#authentication) below). `GET /health` is unauthenticated.
 

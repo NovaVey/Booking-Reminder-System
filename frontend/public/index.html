@@ -180,6 +180,26 @@
   .client-item .name { font-weight: 600; }
   .client-item .contact { font-size: 0.85rem; color: var(--text-muted); }
 
+  .delete-btn {
+    background: transparent;
+    border: 1px solid #fca5a5;
+    color: #b91c1c;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .delete-btn:hover { background: #fee2e2; }
+
+  .booking-delete-btn {
+    margin-top: 14px;
+    display: inline-block;
+  }
+
   .empty-state {
     color: var(--text-muted);
     font-size: 0.9rem;
@@ -480,10 +500,27 @@
             <div class="name">${escapeHtml(c.name)}</div>
             <div class="contact">${escapeHtml([c.email, c.phone].filter(Boolean).join(' · ') || 'No contact info')}</div>
           </div>
+          <button type="button" class="delete-btn" data-id="${c.id}" data-name="${escapeHtml(c.name)}">Delete</button>
         </div>
       `).join('');
+
+      listEl.querySelectorAll('.delete-btn').forEach((btn) => {
+        btn.addEventListener('click', () => deleteClient(btn.dataset.id, btn.dataset.name));
+      });
     } catch (err) {
       listEl.innerHTML = `<div class="empty-state">Failed to load clients: ${escapeHtml(err.message)}</div>`;
+    }
+  }
+
+  async function deleteClient(id, name) {
+    if (!confirm(`Delete ${name}? This will also delete all of their bookings and reminders. This cannot be undone.`)) return;
+
+    try {
+      const res = await apiFetch(`/api/clients/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error(await describeError(res));
+      loadClients();
+    } catch (err) {
+      alert(`Could not delete client: ${err.message}`);
     }
   }
 
@@ -648,6 +685,7 @@
                 ${Object.keys(STATUS_LABELS).map((s) => `<option value="${s}" ${s === b.status ? 'selected' : ''}>${STATUS_LABELS[s]}</option>`).join('')}
               </select>
               ${b.notes ? `<label>Notes</label><div class="notes">${escapeHtml(b.notes)}</div>` : ''}
+              <button type="button" class="delete-btn booking-delete-btn" data-id="${b.id}">Delete Appointment</button>
             </div>
           </div>
         `;
@@ -660,14 +698,30 @@
 
       document.querySelectorAll('.booking-card').forEach((card) => {
         card.addEventListener('click', (e) => {
-          if (e.target.closest('.status-select')) return;
+          if (e.target.closest('.status-select') || e.target.closest('.booking-delete-btn')) return;
           toggleCard(card);
         });
         card.addEventListener('keydown', (e) => {
-          if (e.target.closest('.status-select')) return;
+          if (e.target.closest('.status-select') || e.target.closest('.booking-delete-btn')) return;
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
             toggleCard(card);
+          }
+        });
+      });
+
+      document.querySelectorAll('.booking-delete-btn').forEach((btn) => {
+        btn.addEventListener('keydown', (e) => e.stopPropagation());
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const id = btn.dataset.id;
+          if (!confirm('Delete this appointment? This cannot be undone.')) return;
+          try {
+            const res = await apiFetch(`/api/bookings/${id}`, { method: 'DELETE' });
+            if (!res.ok) throw new Error(await describeError(res));
+            loadBookings();
+          } catch (err) {
+            alert(`Could not delete appointment: ${err.message}`);
           }
         });
       });
