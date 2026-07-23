@@ -404,6 +404,33 @@
     no_show: 'No Show',
   };
 
+  // ---------- API key ----------
+  // Every /api/* request needs an x-api-key header. Ask for it once, keep it
+  // in localStorage, and re-ask if the server ever rejects it (e.g. rotated).
+  const API_KEY_STORAGE = 'bookingReminderApiKey';
+
+  function promptForApiKey() {
+    const key = window.prompt('Enter the API key for this Booking & Reminder System instance:');
+    const trimmed = (key || '').trim();
+    if (trimmed) localStorage.setItem(API_KEY_STORAGE, trimmed);
+    return trimmed;
+  }
+
+  async function apiFetch(url, options = {}) {
+    const key = localStorage.getItem(API_KEY_STORAGE) || promptForApiKey();
+    const withKey = (k) => ({ ...options, headers: { ...(options.headers || {}), 'x-api-key': k } });
+
+    let res = await fetch(url, withKey(key));
+
+    if (res.status === 401) {
+      localStorage.removeItem(API_KEY_STORAGE);
+      const newKey = promptForApiKey();
+      if (newKey) res = await fetch(url, withKey(newKey));
+    }
+
+    return res;
+  }
+
   // ---------- Tab switching ----------
   document.querySelectorAll('.tab-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -425,7 +452,7 @@
   async function loadClients() {
     const listEl = document.getElementById('client-list');
     try {
-      const res = await fetch('/api/clients');
+      const res = await apiFetch('/api/clients');
       if (!res.ok) throw new Error('Request failed');
       const clients = await res.json();
 
@@ -455,7 +482,7 @@
     const phone = document.getElementById('client-phone').value.trim();
 
     try {
-      const res = await fetch('/api/clients', {
+      const res = await apiFetch('/api/clients', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, phone }),
@@ -477,7 +504,7 @@
   async function loadClientDropdown() {
     const select = document.getElementById('booking-client');
     try {
-      const res = await fetch('/api/clients');
+      const res = await apiFetch('/api/clients');
       if (!res.ok) throw new Error('Request failed');
       const clients = await res.json();
       const current = select.value;
@@ -511,7 +538,7 @@
     const appointment_at = `${date}T${time}:00`;
 
     try {
-      const res = await fetch('/api/bookings', {
+      const res = await apiFetch('/api/bookings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -575,7 +602,7 @@
     const listEl = document.getElementById('booking-list');
     try {
       const url = currentStatus ? `/api/bookings?status=${encodeURIComponent(currentStatus)}` : '/api/bookings';
-      const res = await fetch(url);
+      const res = await apiFetch(url);
       if (!res.ok) throw new Error('Request failed');
       const bookings = sortForDisplay(await res.json());
 
@@ -639,7 +666,7 @@
           const id = e.target.dataset.id;
           const status = e.target.value;
           try {
-            const res = await fetch(`/api/bookings/${id}/status`, {
+            const res = await apiFetch(`/api/bookings/${id}/status`, {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ status }),
